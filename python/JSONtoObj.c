@@ -1,75 +1,123 @@
 #include <Python.h>
 #include <ultrajson.h>
+#include <stdlib.h>
 
+/* object stack */
+static JSOBJ *_stack = 0;
+static int _max, _p, _f;
 
+void push(JSOBJ obj) {
+  if (!_stack) {
+    _stack = malloc(sizeof(JSOBJ) * _max);
+    _max = 128;
+    _p = 0;
+    _f = 0;
+  }
 
+  if (_p == _max) {
+    _max *= 2;
+    _stack = realloc(_stack, sizeof(JSOBJ) * _max);
+  }
+
+  if (_p < _f)
+    Py_DECREF( (PyObject *) _stack[_p] );
+  _stack[_p] = obj;
+  ++_p;
+  if (_f < _p)
+    ++_f;
+}
+
+JSOBJ top() {
+  return _stack[_p-1];
+}
+
+JSOBJ peek(int pos) {
+  return _stack[_p-pos];
+}
+
+JSOBJ pop() {
+  --_p;
+  return _stack[_p];
+}
+
+int clean() {
+  int ret = 0;
+  if (_p != 0) {
+    _p = -1;
+    ret = -1;
+  }
+
+  for (i = _p+1; i < _f; i++)
+    Py_DECREF( (PyObject *) _stack[i] );
+  _p = 0;
+  _f = 0;
+  return ret;
+}
 
 void Object_objectAddKey(JSOBJ obj, JSOBJ name, JSOBJ value)
 {
-	PyDict_SetItem (obj, name, value);
-	Py_DECREF( (PyObject *) name);
-	Py_DECREF( (PyObject *) value);
-	return;
+  PyObject *value = pop();
+  PyObject *name = pop();
+
+  PyDict_SetItem ( (PyObject *) top(), name, value);
+  return;
 }
 
 void Object_arrayAddItem(JSOBJ obj, JSOBJ value)
 {
-	PyList_Append(obj, value);
-	Py_DECREF( (PyObject *) value);
-	return;
+  PyObject *value = pop();
+
+  PyList_Append( (PyObject *) top(), value);
+  return;
 }
 
-JSOBJ Object_newString(wchar_t *start, wchar_t *end)
+void Object_newString(wchar_t *start, wchar_t *end)
 {
-	return PyUnicode_FromWideChar (start, (end - start));
+  push(PyUnicode_FromWideChar (start, (end - start)));
 }
 
-JSOBJ Object_newTrue(void)
+void Object_newTrue(void)
 { 
-	Py_RETURN_TRUE;
+  Py_INCREF(Py_True);
+  push(Py_True)
 }
 
-JSOBJ Object_newFalse(void)
+void Object_newFalse(void)
 {
-	Py_RETURN_FALSE;
+  Py_INCREF(Py_False);
+  push(Py_False);
 }
 
-JSOBJ Object_newNull(void)
+void Object_newNull(void)
 {
-	Py_RETURN_NONE;
+  Py_INCREF(Py_None);
+  push(Py_None);
 }
 
-JSOBJ Object_newObject(void)
+void Object_newObject(void)
 {
-	return PyDict_New();
+  push(PyDict_New());
 }
 
-JSOBJ Object_newArray(void)
+void Object_newArray(void)
 {
-	return PyList_New(0);
+  push(PyList_New(0));
 }
 
-JSOBJ Object_newInteger(JSINT32 value)
+void Object_newInteger(JSINT32 value)
 {
-	return PyInt_FromLong( (long) value);
+  push(PyInt_FromLong( (long) value));
 }
 
-JSOBJ Object_newLong(JSINT64 value)
+void Object_newLong(JSINT64 value)
 {
-	return PyLong_FromLongLong (value);
+  push(PyLong_FromLongLong (value));
 }
 
-JSOBJ Object_newDouble(double value)
+void Object_newDouble(double value)
 { 
-	return PyFloat_FromDouble(value);
+  push(PyFloat_FromDouble(value));
 }
-
-static void Object_releaseObject(JSOBJ obj)
-{
-	Py_DECREF( ((PyObject *)obj));
-}
-
-
 
 PyObject* JSONToObj(PyObject* self, PyObject *arg)
 {
@@ -87,7 +135,7 @@ PyObject* JSONToObj(PyObject* self, PyObject *arg)
 		Object_newInteger,
 		Object_newLong,
 		Object_newDouble,
-		Object_releaseObject,
+		top,
 		PyObject_Malloc,
 		PyObject_Free,
 		PyObject_Realloc
@@ -102,7 +150,7 @@ PyObject* JSONToObj(PyObject* self, PyObject *arg)
 	decoder.errorStr = NULL;
 	decoder.errorOffset = NULL;
 	
-	ret = JSON_DecodeObject(&decoder, PyString_AS_STRING(arg), PyString_GET_SIZE(arg)); 
+	JSON_DecodeObject(&decoder, PyString_AS_STRING(arg), PyString_GET_SIZE(arg)); 
 
 	if (decoder.errorStr)
 	{
@@ -110,15 +158,15 @@ PyObject* JSONToObj(PyObject* self, PyObject *arg)
 		FIXME: It's possible to give a much nicer error message here with actual failing element in input etc*/
 		
 		PyErr_Format (PyExc_ValueError, "%s", decoder.errorStr);
-		
-		if (ret)
-		{
-			Py_DECREF( (PyObject *) ret);
-		}
+		clean();
 		
 		return NULL;
 	}
-	
+
+	ret = pop();
+	if (clean()) {
+	  PyErr_Format(PyExc_ValueError, "JSOBJ stack had more than one final value!");
+	}
 	return ret;
 }
 

@@ -270,29 +270,28 @@ EXPORTFUNCTION char *JSON_EncodeObject(JSOBJ obj, JSONObjectEncoder *enc, char *
 
 typedef struct __JSONObjectDecoder
 {
-	JSOBJ (*newString)(wchar_t *start, wchar_t *end);
-	void (*objectAddKey)(JSOBJ obj, JSOBJ name, JSOBJ value);
-	void (*arrayAddItem)(JSOBJ obj, JSOBJ value);
-	JSOBJ (*newTrue)(void);
-	JSOBJ (*newFalse)(void);
-	JSOBJ (*newNull)(void);
-	JSOBJ (*newObject)(void);
-	JSOBJ (*newArray)(void);
-	JSOBJ (*newInt)(JSINT32 value);
-	JSOBJ (*newLong)(JSINT64 value);
-	JSOBJ (*newDouble)(double value);
-	void (*releaseObject)(JSOBJ obj);
-	JSPFN_MALLOC malloc;
-	JSPFN_FREE free;
-	JSPFN_REALLOC realloc;
+  void (*newString)(wchar_t *start, wchar_t *end);
+  void (*objectAddKey)(void);
+  void (*arrayAddItem)(void);
+  void (*newTrue)(void);
+  void (*newFalse)(void);
+  void (*newNull)(void);
+  void (*newObject)(void);
+  void (*newArray)(void);
+  void (*newInt)(JSINT32 value);
+  void (*newLong)(JSINT64 value);
+  void (*newDouble)(double value);
+  JSOBJ (*top)(void);
+  
+  JSPFN_MALLOC malloc;
+  JSPFN_FREE free;
+  JSPFN_REALLOC realloc;
 
-	char *errorStr;
-	char *errorOffset;
-
-
+  char *errorStr;
+  char *errorOffset;
 
 } JSONObjectDecoder;
 
-EXPORTFUNCTION JSOBJ JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuffer);
+EXPORTFUNCTION void JSON_DecodeObject(JSONObjectDecoder *dec, const char *buffer, size_t cbBuffer);
 
 #endif

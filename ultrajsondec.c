@@ -171,10 +171,12 @@ BREAK_INT_LOOP:
 #endif
 	{	
 	  ds->dec->newLong( (JSINT64) (intValue * (JSINT64) intNeg));
+	  return;
 	}
 	else
 	{
 	  ds->dec->newInt( (JSINT32) (intValue * intNeg));
+	  return;
 	}
 
 DECODE_FRACTION:
@@ -707,7 +709,6 @@ FASTCALL_ATTR void FASTCALL_MSVC decode_object( struct DecoderState *ds)
 
     ds->lastType = JT_INVALID;
     decode_any(ds);
-
     if (HasError(ds))
       return;
 

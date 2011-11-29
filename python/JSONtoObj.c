@@ -8,15 +8,15 @@ static int _max, _p, _f;
 
 void push(JSOBJ obj) {
   if (!_stack) {
-    _stack = malloc(sizeof(JSOBJ) * _max);
-    _max = 128;
+    _max = 256;
+    _stack = PyObject_Malloc(sizeof(JSOBJ) * _max);
     _p = 0;
     _f = 0;
   }
 
   if (_p == _max) {
     _max *= 2;
-    _stack = realloc(_stack, sizeof(JSOBJ) * _max);
+    _stack = PyObject_Realloc(_stack, sizeof(JSOBJ) * _max);
   }
 
   if (_p < _f)
@@ -37,11 +37,13 @@ JSOBJ peek(int pos) {
 
 JSOBJ pop() {
   --_p;
+
   return _stack[_p];
 }
 
 int clean() {
-  int ret = 0;
+  int ret = 0, i;
+
   if (_p != 0) {
     _p = -1;
     ret = -1;
@@ -51,10 +53,14 @@ int clean() {
     Py_DECREF( (PyObject *) _stack[i] );
   _p = 0;
   _f = 0;
-  return ret;
+
+  if (_stack) {
+    PyObject_Free(_stack);
+    _stack = 0;
+  } return ret;
 }
 
-void Object_objectAddKey(JSOBJ obj, JSOBJ name, JSOBJ value)
+void Object_objectAddKey()
 {
   PyObject *value = pop();
   PyObject *name = pop();
@@ -63,7 +69,7 @@ void Object_objectAddKey(JSOBJ obj, JSOBJ name, JSOBJ value)
   return;
 }
 
-void Object_arrayAddItem(JSOBJ obj, JSOBJ value)
+void Object_arrayAddItem()
 {
   PyObject *value = pop();
 
@@ -79,7 +85,7 @@ void Object_newString(wchar_t *start, wchar_t *end)
 void Object_newTrue(void)
 { 
   Py_INCREF(Py_True);
-  push(Py_True)
+  push(Py_True);
 }
 
 void Object_newFalse(void)
@@ -144,6 +150,7 @@ PyObject* JSONToObj(PyObject* self, PyObject *arg)
 	if (!PyString_Check(arg))
 	{
 		PyErr_Format(PyExc_TypeError, "Expected string");
+		clean();
 		return NULL;
 	}
 

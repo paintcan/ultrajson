@@ -9,14 +9,14 @@ static int _max, _p, _f;
 void push(JSOBJ obj) {
   if (!_stack) {
     _max = 256;
-    _stack = PyObject_Malloc(sizeof(JSOBJ) * _max);
+    _stack = malloc(sizeof(JSOBJ) * _max);
     _p = 0;
     _f = 0;
   }
 
   if (_p == _max) {
     _max *= 2;
-    _stack = PyObject_Realloc(_stack, sizeof(JSOBJ) * _max);
+    _stack = realloc(_stack, sizeof(JSOBJ) * _max);
   }
 
   if (_p < _f)
@@ -54,10 +54,11 @@ int clean() {
   _p = 0;
   _f = 0;
 
-  if (_stack) {
-    PyObject_Free(_stack);
-    _stack = 0;
-  } return ret;
+  //if (_stack) {
+    //free(_stack);
+    //_stack = 0;
+  //} 
+  return ret;
 }
 
 void Object_objectAddKey()

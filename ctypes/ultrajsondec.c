@@ -41,8 +41,6 @@ Copyright (c) 2007  Nick Galbreath -- nickg [at] modp [dot] com. All rights rese
 #include <limits.h>
 #include <wchar.h>
 
-#include <stdio.h>
-
 struct DecoderState
 {
 	char *start;
@@ -175,12 +173,7 @@ BREAK_INT_LOOP:
 	}
 	else
 	{
-	  printf("trying to create a new integer\n");
-	  printf("%p\n", ds->dec->newInt);
 	  ds->dec->newInt( (JSINT32) (intValue * intNeg));
-	  
-	  printf("seg fualt?\n");
-
 	  return;
 	}
 

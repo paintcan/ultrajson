@@ -2,6 +2,6 @@ i did this to try out ujson in ctypes, using (for me) the obvious and what is no
 
 regular ujson - ~22 seconds
 my ctypes ujson in cpython - ~49 seconds
-my ctypes ujson in pypy - more than 5 minutes (i'm not waiting longer than that, even for science)
+my ctypes ujson in pypy - 560 seconds!!!
 
 so, this experiment is a failure

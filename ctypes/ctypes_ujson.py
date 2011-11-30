@@ -1,42 +1,49 @@
 import ctypes
+from collections import deque
 
 # decoding functionality
 
+objstack = deque()
+error = []
+
 def object_add_key():
-    print 'object add key'
+    item = objstack.popleft()
+    key = objstack.popleft()
+    objstack[0][key] = item
 
 def array_add_item():
-    print 'array add item'
+    item = objstack.popleft()
+    objstack[0].append(item)
 
 def new_string(s):
-    print 'new string: %s' % s
+    objstack.appendleft(s)
 
 def new_true():
-    print 'new true'
+    objstack.appendleft(True)
 
 def new_false():
-    print 'new false'
+    objstack.appendleft(False)
 
 def new_null():
-    print 'new null'
+    objstack.appendleft(None)
 
 def new_object():
-    print 'new object'
+    objstack.appendleft({})
 
 def new_array():
-    print 'new array'
+    objstack.appendleft([])
 
 def new_integer(i):
-    print 'new integer: %s' % i
+    objstack.appendleft(i)
 
 def new_long(l):
-    print 'new long: %d' % l
+    objstack.appendleft(l)
 
 def new_double(d):
-    print 'new double: %f' % d
+    objstack.appendleft(d)
 
 def raise_error(e):
-    print 'error: %s' % e
+    error.append('(ctypes) ujson parsing error: %s' % e)
 
 void_void = ctypes.CFUNCTYPE(None)
 void_unicode = ctypes.CFUNCTYPE(None, ctypes.c_wchar_p)
@@ -66,8 +73,8 @@ decode_internal.argtypes = [ctypes.c_char_p, ctypes.c_int,
 
 def decode(s):
     # marshal s into a BUFFER (ensure utf-8, ensure it is a byte buffer)
-    # set up stacks etc
 
+    objstack.clear()
     decode_internal(s, len(s), 
                     void_void(object_add_key),
                     void_void(array_add_item),
@@ -83,4 +90,10 @@ def decode(s):
                     void_str(raise_error))
 
     # report any errors
-    # return result
+    if error:
+        raise Exception(error.pop())
+
+    if len(objstack) != 1:
+        raise Exception('(ctypes) ujson exceptional condition: at end, stack has %d items instead of 1' % len(objstack))
+
+    return objstack[0]

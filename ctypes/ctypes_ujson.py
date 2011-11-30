@@ -1,5 +1,6 @@
 import ctypes
-from collections import deque
+#from collections import deque
+from lib_pypy import _collections as collections
 
 # decoding functionality
 
